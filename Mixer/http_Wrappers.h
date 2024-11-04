@@ -110,9 +110,7 @@ void OP_DEVICE_SYNC_Wrapper(int ID_DEVICE, String &DEVICE_TYPE, String &TAG, Str
 void Package_OP_SENSOR_DATA(JsonDocument &JsonPackagetoSend, String &PackagetoSend) {  //Client used for request that dont add any special parameters.
   JsonPackagetoSend["Operation"] = OP_SENSOR_DATA;
   JsonPackagetoSend["ID"] = ID_DEVICE2;
-  JsonPackagetoSend["Flow"] = SensorData.Flow;
-  JsonPackagetoSend["AngleofValve"] = SensorData.AngleofValve;
-  JsonPackagetoSend["ValveOpeningPercentage"] = SensorData.ValveOpeningPercentage;
+  JsonPackagetoSend["LiquidLevel"] = SensorData.LiquidLevel;
   serializeJson(JsonPackagetoSend, PackagetoSend);
   Serial.println("PackagetoSend");
   Serial.println(PackagetoSend);
