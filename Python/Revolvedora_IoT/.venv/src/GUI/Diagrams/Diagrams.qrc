@@ -1,0 +1,5 @@
+<RCC>
+  <qresource prefix="Diagrams">
+    <file>PIDproyecto.svg</file>
+  </qresource>
+</RCC>

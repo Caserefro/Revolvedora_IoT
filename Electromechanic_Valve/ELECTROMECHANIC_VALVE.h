@@ -8,21 +8,52 @@
 #include <HTTPClient.h>
 
 WebServer server(80);
-String ServerAdr = "http://192.168.100.32:5000";
-
+//String ServerAdr = "http://192.168.100.32:5000";
+String ServerAdr = "http://192.168.209.73:5000";
 String requestBody;
+
 
 int ID_DEVICE1 = 1;
 String DEVICE_TYPE1 = "Flowmeter";
-String TAG1 = "TAG2-NUM2";
-String PLACE1 = "Tank #1";
-String DEVICE_DESCRIPTION1 = "Flowmeter for tank #1.";
+String TAG1 = "FT-102";
+String PLACE1 = "Tank #3";
+String DEVICE_DESCRIPTION1 = "Intake Flowmeter for tank #3.";
+
 
 int ID_DEVICE2 = 2;
 String DEVICE_TYPE2 = "Electromechanical Valve";
-String TAG2 = "TAG-NUM";
+String TAG2 = "FC-103";
+String PLACE2 = "Tank #3";
+String DEVICE_DESCRIPTION2 = "Intake valve for tank #3.";
+
+
+/*
+int ID_DEVICE1 = 3;
+String DEVICE_TYPE1 = "Flowmeter";
+String TAG1 = "FT-203";
+String PLACE1 = "Tank #3";
+String DEVICE_DESCRIPTION1 = "Intake Flowmeter for tank #3.";
+
+int ID_DEVICE2 = 4;
+String DEVICE_TYPE2 = "Electromechanical Valve";
+String TAG2 = "FC-202";
 String PLACE2 = "Tank #1";
-String DEVICE_DESCRIPTION2 = "Intake valve for tank #1.";
+String DEVICE_DESCRIPTION2 = "Intake valve for tank #2.";
+*/
+
+/*
+int ID_DEVICE1 = 5;
+String DEVICE_TYPE1 = "Flowmeter";
+String TAG1 = "FT-304";
+String PLACE1 = "Tank #3";
+String DEVICE_DESCRIPTION1 = "Output Flowmeter for tank #3.";
+
+int ID_DEVICE2 = 6;
+String DEVICE_TYPE2 = "Electromechanical Valve";
+String TAG2 = "FT-303";
+String PLACE2 = "Tank #3";
+String DEVICE_DESCRIPTION2 = "Output valve for tank #3.";
+*/
 
 int FreqMinServo = 400;
 int FreqMaxServo = 2400;
@@ -37,7 +68,7 @@ static TaskHandle_t Timer_Task = NULL;
 hw_timer_t* timer = NULL;
 uint8_t timer_id = 0;
 uint16_t prescaler = 80;             // Between 0 and 65 535
-int threshold = (1000000 / 2) * 60;  // 64 bits value (limited to int size of 32bits)
+int threshold = (1000000 / 2) * 5;  // 64 bits value (limited to int size of 32bits)
 void IRAM_ATTR timer_isr();
 
 volatile int pulseCount = 0;  // Variable to store pulse count

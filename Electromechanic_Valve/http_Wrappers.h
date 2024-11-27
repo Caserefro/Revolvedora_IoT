@@ -109,8 +109,9 @@ void OP_DEVICE_SYNC_Wrapper(int ID_DEVICE, String &DEVICE_TYPE, String &TAG, Str
 
 void Package_OP_SENSOR_DATA(JsonDocument &JsonPackagetoSend, String &PackagetoSend) {  //Client used for request that dont add any special parameters.
   JsonPackagetoSend["Operation"] = OP_SENSOR_DATA;
-  JsonPackagetoSend["ID"] = ID_DEVICE2;
-  JsonPackagetoSend["Flow"] = SensorData.Flow;
+  JsonPackagetoSend["ID"] = ID_DEVICE1;
+  //JsonPackagetoSend["Flow"] = SensorData.Flow; //TEMPORAL CHANGE---------------------------------------------
+  JsonPackagetoSend["Flow"] = random(1000, 1300) / 100.0;
   JsonPackagetoSend["AngleofValve"] = SensorData.AngleofValve;
   JsonPackagetoSend["ValveOpeningPercentage"] = SensorData.ValveOpeningPercentage;
   serializeJson(JsonPackagetoSend, PackagetoSend);
