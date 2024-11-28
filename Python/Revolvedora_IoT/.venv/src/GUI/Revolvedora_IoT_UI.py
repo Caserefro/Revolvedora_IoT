@@ -28,20 +28,10 @@ class Revolvedora_IoT_UI(QMainWindow, Ui_MainWindow):
         self.tank_controllers = {}  # To store TankController instances
         self.server_ip = ServerIP
         self.devices_data = {}  # To store the retrieved data
-
-        self.postNeeded = 0
-        self.postIP = ""
-        self.postSetPoint = ""
-        self.postOperation = ""
-        self.postID = ""
-        self.SensorDataTicks = 0
         # Timer setup to call UpdateDevicesData every 5000 ms (5 seconds)
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.updateDataPeriodically)  # Connect the timer to a method
-        self.timer.start(500)  # Start the timer, update every 5000 ms
-        self.timer2 = QTimer(self)
-        self.timer2.timeout.connect(self.postDataPeriodically)  # Connect the timer to a method
-        self.timer2.start(500)  # Start the timer, update every 5000 ms
+        self.timer.start(50000)  # Start the timer, update every 5000 ms
 
     def setupUiExtra(self, MainWindow):
         self.close_window_button.clicked.connect(MainWindow.close)
@@ -135,112 +125,93 @@ class Revolvedora_IoT_UI(QMainWindow, Ui_MainWindow):
             self.tank_controllers[4] = TankController("Not Asssigned", 0, "Not Assigned", 0)
         self.tank_controllers[4].show()
 
-    def postDataPeriodically(self):
-        if self.postNeeded == 1:
-            Package = {
-                "Operation": postOperation,
-                "SetPoint": postSetPoint,
-                "ID": postID
-            }
-            PostRequestOP_VARIABLE_SETPOINT_CONTROL(self.server_ip,Package)
-            self.postNeeded = 0
-
     def updateDataPeriodically(self):
-        # Your list of sensor IDs (you should have a valid list)
         sensor_list = [1, 2, 3, 4, 5, 6, 7, 8]  # Replace with actual sensor IDs
         self.UpdateDevicesData(sensor_list)
 
     def UpdateDevicesData(self, sensor_list):
-        """
-        Updates local storage with data retrieved for each sensor in the list.
-        Avoids adding duplicates and checks for changes in fields.
-        """
-        self.SensorDataTicks = self.SensorDataTicks + 1
-        if self.SensorDataTicks == 9:
-            self.SensorDataTicks = 0
-            for sensor_id in sensor_list:
-                print(f"Fetching data for SensorID: {sensor_id}")
-                response = PostRequestOP_Sensor_Records(self.server_ip, sensor_id)
-                try:
-                    # Deserialize JSON response into a Python dictionary
-                    data = json.loads(response)
-                except json.JSONDecodeError:
-                    print(f"Failed to decode JSON for SensorID {sensor_id}: {response}")
-                    continue
+        for sensor_id in sensor_list:
+            # print(f"Fetching data for SensorID: {sensor_id}")
+            response = PostRequestOP_Sensor_Records(self.server_ip, sensor_id)
+            try:
+                # Deserialize JSON response into a Python dictionary
+                data = json.loads(response)
+            except json.JSONDecodeError:
+                # print(f"Failed to decode JSON for SensorID {sensor_id}: {response}")
+                continue
 
-                if data and "error" not in data:
-                    self.devices_data[sensor_id] = data
-                    print(f"Updated data for SensorID {sensor_id}: {data}")
+            if data and "error" not in data:
+                self.devices_data[sensor_id] = data
+                # print(f"Updated data for SensorID {sensor_id}: {data}")
 
-                    # Extract details from the response
-                    device_id = data["sensor_id"]
-                    ip_address = data["ip_address"]
-                    device_type = data["device_type"]
-                    tag = data.get("tag", "N/A")
-                    place = data["place"]
-                    description = data["description"]
-                    state = (
-                        data["records"][0].get("flow_value", "N/A")
-                        if device_type == "Flowmeter" else
-                        data["records"][0].get("valve_value", "N/A")
-                        if device_type == "Electromechanical Valve" else
-                        data["records"][0].get("level_state", "N/A")
-                        if device_type == "Liquid Level Meter" else
-                        data["records"][0].get("motor_state", "N/A")
-                        if device_type == "Mixer Motor" else "N/A"
-                    ) if data["records"] else "No Data"
+                # Extract details from the response
+                device_id = data["sensor_id"]
+                ip_address = data["ip_address"]
+                device_type = data["device_type"]
+                tag = data.get("tag", "N/A")
+                place = data["place"]
+                description = data["description"]
+                state = (
+                    data["records"][0].get("flow_value", "N/A")
+                    if device_type == "Flowmeter" else
+                    data["records"][0].get("valve_value", "N/A")
+                    if device_type == "Electromechanical Valve" else
+                    data["records"][0].get("level_state", "N/A")
+                    if device_type == "Liquid Level Meter" else
+                    data["records"][0].get("motor_state", "N/A")
+                    if device_type == "Mixer Motor" else "N/A"
+                ) if data["records"] else "No Data"
 
-                    # Check if the device_id already exists in the table
-                    row_position = None
-                    for row in range(self.tableWidget.rowCount()):
-                        existing_device_id = self.tableWidget.item(row,
-                                                                   0).text()  # Assuming device_id is in the first column
-                        if existing_device_id == str(device_id):
-                            row_position = row
-                            break
+                # Check if the device_id already exists in the table
+                row_position = None
+                for row in range(self.tableWidget.rowCount()):
+                    existing_device_id = self.tableWidget.item(row,
+                                                               0).text()  # Assuming device_id is in the first column
+                    if existing_device_id == str(device_id):
+                        row_position = row
+                        break
 
-                    if row_position is None:
-                        # Add a new row to the table if no duplicate was found
-                        row_position = self.tableWidget.rowCount()
-                        self.tableWidget.insertRow(row_position)
+                if row_position is None:
+                    # Add a new row to the table if no duplicate was found
+                    row_position = self.tableWidget.rowCount()
+                    self.tableWidget.insertRow(row_position)
 
-                    # Compare the existing row data with the new data and update if necessary
-                    fields = [
-                        (0, str(device_id)),  # device_id
-                        (1, str(ip_address)),  # ip_address
-                        (2, str(device_type)),  # device_type
-                        (3, str(tag)),  # tag
-                        (4, str(place)),  # place
-                        (5, str(description)),  # description
-                        (6, str(state)),  # state
-                        (7, str(state))  # state (again for display purposes, or any other field)
-                    ]
+                # Compare the existing row data with the new data and update if necessary
+                fields = [
+                    (0, str(device_id)),  # device_id
+                    (1, str(ip_address)),  # ip_address
+                    (2, str(device_type)),  # device_type
+                    (3, str(tag)),  # tag
+                    (4, str(place)),  # place
+                    (5, str(description)),  # description
+                    (6, str(state)),  # state
+                    (7, str(state))  # state (again for display purposes, or any other field)
+                ]
 
-                    for column, new_value in fields:
-                        current_item = self.tableWidget.item(row_position, column)
-                        if current_item is None or current_item.text() != new_value:
-                            # Update the table cell if there is a change in the value
-                            self.tableWidget.setItem(row_position, column, QTableWidgetItem(new_value))
+                for column, new_value in fields:
+                    current_item = self.tableWidget.item(row_position, column)
+                    if current_item is None or current_item.text() != new_value:
+                        self.tableWidget.setItem(row_position, column, QTableWidgetItem(new_value))
 
-                    # Update UI components like labels based on device ID
-                    if device_id == 1:
-                        self.Valve_1L.setText(f"{str(state)}")
-                    if device_id == 2:
-                        self.Valve_1L.setText(f"{str(state)} / {self.Valve_1L.text()}")
-                    if device_id == 3:
-                        self.Valve_2L.setText(f"{str(state)}")
-                    if device_id == 4:
-                        self.Valve_2L.setText(f"{str(state)} / {self.Valve_2L.text()}")
-                    if device_id == 5:
-                        self.Valve_3L.setText(f"{str(state)}")
-                    if device_id == 6:
-                        self.Valve_3L.setText(f"{str(state)} / {self.Valve_3L.text()}")
-                    if device_id == 7:
-                        self.Tank_3L.setText(f"{str(state)}")
-                    if device_id == 8:
-                        self.Tank_3L.setText(f"{str(state)} / {self.Tank_3L.text()}")
-                else:
-                    print(f"Failed to update data for SensorID {sensor_id}")
+                if device_id == 1:
+                    self.Valve_1L.setText(f"{str(state)}")
+                if device_id == 2:
+                    self.Valve_1L.setText(f"{str(state)} / {self.Valve_1L.text()}")
+                if device_id == 3:
+                    self.Valve_2L.setText(f"{str(state)}")
+                if device_id == 4:
+                    self.Valve_2L.setText(f"{str(state)} / {self.Valve_2L.text()}")
+                if device_id == 5:
+                    self.Valve_3L.setText(f"{str(state)}")
+                if device_id == 6:
+                    self.Valve_3L.setText(f"{str(state)} / {self.Valve_3L.text()}")
+                if device_id == 7:
+                    self.Tank_3L.setText(f"{str(state)}")
+                if device_id == 8:
+                    self.Tank_3L.setText(f"{str(state)} / {self.Tank_3L.text()}")
+            else:
+                print(f"Failed to update data for SensorID {sensor_id}")
+
 
 class TankController(Ui_tank):
     def __init__(self, levelName, level_ID, motorName, motorID):
@@ -254,36 +225,34 @@ class TankController(Ui_tank):
         # self.eTextMixerSetpoint.textChanged.connect(self.update_mixer_setpoint)
         self.applyChangesLevelbtn.clicked.connect(self.update_level_setpoint)
         self.applyChangesMixerbtn.clicked.connect(self.update_mixer_setpoint)
+        self.__levelName = levelName
+        self.__level_ID = level_ID
+        self.__motorName = motorName
+        self.__motorID = motorID
         self.DeviceName.setText(f"{levelName} and {motorName}")
         self.initialize_data()
 
     def show(self):
-        """Show the dialog."""
         self.dialog.exec_()
 
     def minimize_window(self):
-        """Minimize the dialog."""
         self.dialog.showMinimized()
 
     def close_window(self):
-        """Close the dialog."""
         self.dialog.close()
 
-    def update_level_setpoint(self, ID, OP_LEVEL_CONTROL):
-        """Handle level setpoint changes."""
+    def update_level_setpoint(self):
         value = self.eTextLevelSetpoint.toPlainText()
         try:
-            # Convert value to float
             value = float(value)
-
-            # Validate range
             if 0 <= value <= 30:
                 print(f"Level setpoint updated to: {value}")
-                self.postNeeded = 1
-                self.postSetPoint = value,
-                self.postOperation = OP_LEVEL_CONTROL,  # Replace with actual operation
-                self.postID = ID  # Replace with actual ID
-
+                Package = {
+                    "Operation": OP_LEVEL_CONTROL,
+                    "SetPoint": value,
+                    "ID": self.__level_ID
+                }
+                print(PostRequestOP_VARIABLE_SETPOINT_CONTROL(ServerIP, Package))
                 self.dialog.close()  # Close the dialog after starting the request
             else:
                 print("Error: The level must be between 0 and 30.")
@@ -293,15 +262,18 @@ class TankController(Ui_tank):
             self.dialog.close()  # Close the dialog
 
     def update_mixer_setpoint(self):
-        """Handle mixer setpoint changes."""
         value = self.eTextMixerSetpoint.toPlainText()
         try:
-            # Try to convert the value to a float and check if it's either 0 or 1
             value = float(value)
 
             if value == 0 or value == 1:
                 print(f"Mixer setpoint updated to: {value}")
-                print(PostRequestOP_VARIABLE_SETPOINT_CONTROL(ServerIP, value, OP_MOTOR_CONTROL, motorID))
+                Package = {
+                    "Operation": OP_MOTOR_CONTROL,
+                    "SetPoint": value,
+                    "ID": self.__motorID
+                }
+                print(PostRequestOP_VARIABLE_SETPOINT_CONTROL(ServerIP, Package))
                 self.dialog.close()  # Close the dialog after valid update
             else:
                 print("Error: The mixer setpoint must be either 0 or 1.")
@@ -328,7 +300,10 @@ class ValveController(Ui_Valve):
         self.close_window_button_2.clicked.connect(self.close_window)
         self.DeviceName.setText(f"{flowmeterName} and {valveName}")
         self.applyChangesOPbtn.clicked.connect(self.update_OpeningPercentage)
-
+        self.__flowmeterName = flowmeterName
+        self.__flowmeterID = flowmeterID
+        self.__valveName = valveName
+        self.__valveID = valveID
         self.initialize_data()
 
     def show(self):
@@ -351,6 +326,12 @@ class ValveController(Ui_Valve):
             # Check if the value is within the valid boundary (0-90)
             if 0 <= value <= 90:
                 print(f"Opening Percentage setpoint updated to: {value}")
+                Package = {
+                    "Operation": OP_OPENING_PERCENTAGE_SETPOINT_CONTROL,
+                    "SetPoint": value,
+                    "ID": self.__valveID
+                }
+                print(PostRequestOP_VARIABLE_SETPOINT_CONTROL(ServerIP, Package))
                 self.dialog.close()  # Close the dialog after valid update
             else:
                 print("Error: The value must be between 0 and 90.")

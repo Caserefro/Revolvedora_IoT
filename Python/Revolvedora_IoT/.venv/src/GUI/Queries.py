@@ -22,6 +22,7 @@ sensorList = [1, 2, 3, 4, 5, 6]
 http_queue = queue.Queue()
 
 def PostRequestOP_VARIABLE_SETPOINT_CONTROL(IP, Package):  # orders the thing to do some shit.
+
     print("Sending package:", Package)
     try:
         response = requests.post(
@@ -29,7 +30,7 @@ def PostRequestOP_VARIABLE_SETPOINT_CONTROL(IP, Package):  # orders the thing to
             data=json.dumps(Package),
             headers={'Content-Type': 'application/json'}
         )
-        response.raise_for_status()  # Raise error if the request fails
+        print(response.raise_for_status()) # Raise error if the request fails
         print("Response:", response.text)
         return response.text
     except requests.exceptions.RequestException as e:
