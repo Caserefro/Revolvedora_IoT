@@ -30,16 +30,18 @@ bool postData(String &serverName, String &payload, String &response) {
   if (WiFi.status() == WL_CONNECTED) {  // Check WiFi connection status
     HTTPClient http;
     http.begin(serverName);  // Specify the URL
+ //   http.setTimeout(10);   // Set timeout to 5000 ms (5 seconds)
     http.addHeader("Content-Type", "text/plain");
+
     // Send HTTP POST request
     int httpResponseCode = http.POST(payload);
     Serial.println(httpResponseCode);
+
     // Check the returning code
     if (httpResponseCode > 0) {
       response = http.getString();  // Get the response to the request
-
-      Serial.println(response);  // Print request answer
-      http.end();                // Free resources
+      Serial.println(response);     // Print request answer
+      http.end();                   // Free resources
       return 1;
     } else {
       Serial.print("Error on sending POST: ");
@@ -51,7 +53,6 @@ bool postData(String &serverName, String &payload, String &response) {
     http.end();  // Free resources
   } else {
     Serial.println("Error in WiFi connection");
-
     return 0;
   }
   return 1;
@@ -69,11 +70,27 @@ void ServerHandler() {
 
     JsonDocument JsonPackageReceived;
     deserializeJson(JsonPackageReceived, body);
-    if (JsonPackageReceived["Operation"] == OP_VALVE_SETPOINT_CONTROL) {
+    if (JsonPackageReceived["Operation"] == OP_OPENING_ANGLE_SETPOINT_CONTROL) {
       SetPoint = JsonPackageReceived["SetPoint"];
       MoveValve(SetPoint);
+      Serial.println("LLEEGUEEEEEEEEEEEEEEEEEEEEEE");
       Serial.println(SetPoint);
-      
+    }
+    if (JsonPackageReceived["Operation"] == OP_MIXTUREMODE_SETPOINT) {
+      SetPoint = JsonPackageReceived["SetPoint"];
+      Serial.println("MIXTUREMODE");
+      Serial.println(SetPoint);
+      vTaskSuspend(Continous_Mode_Task);
+      vTaskResume(Mixture_Mode_Task);
+      //Wake up Task, and leave it running until Setpoint is close to done.
+    }
+    if (JsonPackageReceived["Operation"] == OP_CONTINOUSMODE_SETPOINT) {
+      SetPoint = JsonPackageReceived["SetPoint"];
+      Serial.println("CONTINOUSMODE");
+      Serial.println(SetPoint);
+      vTaskSuspend(Mixture_Mode_Task);
+      vTaskResume(Continous_Mode_Task);
+      //Wake up Task, and leave it running for ever
     }
   } else {
     server.send(400, "plain", "No body received");
@@ -107,23 +124,44 @@ void OP_DEVICE_SYNC_Wrapper(int ID_DEVICE, String &DEVICE_TYPE, String &TAG, Str
 }
 
 
-void Package_OP_SENSOR_DATA(JsonDocument &JsonPackagetoSend, String &PackagetoSend) {  //Client used for request that dont add any special parameters.
+void Package_OP_SENSOR_DATAFLOWMETER(JsonDocument &JsonPackagetoSend, String &PackagetoSend) {  //Client used for request that dont add any special parameters.
   JsonPackagetoSend["Operation"] = OP_SENSOR_DATA;
   JsonPackagetoSend["ID"] = ID_DEVICE1;
-  //JsonPackagetoSend["Flow"] = SensorData.Flow; //TEMPORAL CHANGE---------------------------------------------
-  JsonPackagetoSend["Flow"] = random(1000, 1300) / 100.0;
-  JsonPackagetoSend["AngleofValve"] = SensorData.AngleofValve;
-  JsonPackagetoSend["ValveOpeningPercentage"] = SensorData.ValveOpeningPercentage;
+  JsonPackagetoSend["Flow"] = SensorData.Flow; //TEMPORAL CHANGE---------------------------------------------
+  //JsonPackagetoSend["Flow"] = random(0, 1000) / 100.0;
   serializeJson(JsonPackagetoSend, PackagetoSend);
   Serial.println("PackagetoSend");
   Serial.println(PackagetoSend);
 }
 
-void OP_SENSOR_DATA_Wrapper() {
+void OP_SENSOR_DATAFLOWMETER_Wrapper() {
   String response = "";
   String Package = "";
   JsonDocument doc;
-  Package_OP_SENSOR_DATA(doc, Package);  //change this one for the one pointed in the
+  Package_OP_SENSOR_DATAFLOWMETER(doc, Package);  //change this one for the one pointed in the
+  if (!postData(ServerAdr + "/", Package, response)) {
+    response = "error posting data";
+    return;
+  }
+  Serial.println(response);
+  return;
+}
+
+
+void Package_OP_SENSOR_DATAVALVE(JsonDocument &JsonPackagetoSend, String &PackagetoSend) {  //Client used for request that dont add any special parameters.
+  JsonPackagetoSend["Operation"] = OP_SENSOR_DATA;
+  JsonPackagetoSend["ID"] = ID_DEVICE2;
+  JsonPackagetoSend["ValveAngle"] = SensorData.AngleofValve;
+  serializeJson(JsonPackagetoSend, PackagetoSend);
+  Serial.println("PackagetoSend");
+  Serial.println(PackagetoSend);
+}
+
+void OP_SENSOR_DATAVALVE_Wrapper() {
+  String response = "";
+  String Package = "";
+  JsonDocument doc;
+  Package_OP_SENSOR_DATAVALVE(doc, Package);  //change this one for the one pointed in the
   if (!postData(ServerAdr + "/", Package, response)) {
     response = "error posting data";
     return;
@@ -136,4 +174,3 @@ void OP_SENSOR_DATA_Wrapper() {
 
 
 #endif
-

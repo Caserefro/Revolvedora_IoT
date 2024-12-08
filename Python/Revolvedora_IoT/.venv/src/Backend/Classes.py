@@ -54,7 +54,7 @@ class FlowRecords(BaseRecord):
 
 class ValveRecords(BaseRecord):
     __tablename__ = 'valve_records'
-    valve_value = Column(Integer, nullable=True)
+    valve_angle = Column(Integer, nullable=True)
 
 class LevelRecords(BaseRecord):
     __tablename__ = 'level_records'

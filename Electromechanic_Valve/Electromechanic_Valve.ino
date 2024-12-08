@@ -2,7 +2,8 @@
 
 void TimerTask(void *parameters) {
   while (1) {
-    Serial.println("TimerTask ran succesfull --------------------------");
+    //Serial.println("TimerTask ran succesfull --------------------------");
+    double milistest = millis();
     noInterrupts();                     // Disable interrupts while calculating the flow rate
     float pulseFrequency = pulseCount;  // Store pulse count locally
     pulseCount = 0;                     // Reset the pulse count for the next second
@@ -14,8 +15,11 @@ void TimerTask(void *parameters) {
     Serial.print("Flow rate: ");
     Serial.print(SensorData.Flow);
     Serial.println(" L/min");
-
-    OP_SENSOR_DATA_Wrapper();
+    //Serial.println(millis() - milistest);
+    milistest = millis();
+    OP_SENSOR_DATAFLOWMETER_Wrapper();
+    OP_SENSOR_DATAVALVE_Wrapper();
+    //Serial.println(millis() - milistest);
     vTaskSuspend(NULL);
   }
 }
@@ -26,6 +30,42 @@ void IRAM_ATTR countPulse() {
 
 void IRAM_ATTR timer_isr() {  //mutex not needed
   vTaskResume(Timer_Task);    // Resume the TimerTask
+}
+
+void ContinousModeTask(void *parameters) {
+  while (1) {
+    // Calculate current error
+    double error = SensorData.Flow - SetPoint;
+
+    // Update error array
+    errorarr[errorcounter] = error;
+    errorcounter = (errorcounter + 1) % 20;  // Circular buffer
+
+    // Calculate sum of errors (integral term)
+    double sumerrors = 0;
+    for (int i = 0; i < 20; i++) {
+      sumerrors += errorarr[i];
+    }
+
+    // Compute PID response
+    double PIDResponse = error * kpCM + sumerrors * kiCM + (error - lasterror) * kdCM;
+
+    // Clamp response to actuator range
+    if (PIDResponse > 90) PIDResponse = 90;
+    if (PIDResponse < 0) PIDResponse = 0;
+
+    // Store current error as last error for the next loop
+    lasterror = error;
+
+    // Apply the response (e.g., adjust a valve or motor)
+    MoveValve(PIDResponse);  // Implement this function to send response to actuator
+  }
+}
+
+void MixtureModeTask(void *parameters) {
+  while (1) {
+    // double RemainingLT =
+  }
 }
 
 
@@ -45,7 +85,7 @@ void setup() {
   ESP32PWM::allocateTimer(1);
   ESP32PWM::allocateTimer(2);
   ESP32PWM::allocateTimer(3);
-  myservo.setPeriodHertz(50);            // standard 50 hz servo
+  myservo.setPeriodHertz(50);                            // standard 50 hz servo
   myservo.attach(servoPin, FreqMinServo, FreqMaxServo);  // attaches the servo on pin 18 to the servo object
   MoveValve(0);
 
@@ -55,7 +95,7 @@ void setup() {
 
   OP_DEVICE_SYNC_Wrapper(ID_DEVICE1, DEVICE_TYPE1, TAG1, PLACE1, DEVICE_DESCRIPTION1);
   OP_DEVICE_SYNC_Wrapper(ID_DEVICE2, DEVICE_TYPE2, TAG2, PLACE2, DEVICE_DESCRIPTION2);
-  
+
 
   timer = timerBegin(timer_id, prescaler, true);
   timerAttachInterrupt(timer, &timer_isr, true);
@@ -68,6 +108,20 @@ void setup() {
               NULL,
               1,
               &Timer_Task);
+  xTaskCreate(ContinousModeTask,
+              "Continous Mode Task",
+              4096,
+              NULL,
+              1,
+              &Continous_Mode_Task);
+  xTaskCreate(MixtureModeTask,
+              "Mixture Mode Task",
+              4096,
+              NULL,
+              1,
+              &Mixture_Mode_Task);
+  vTaskSuspend(Continous_Mode_Task);
+  vTaskSuspend(Mixture_Mode_Task);
   server.on("/", HTTP_POST, ServerHandler);
   server.begin();
 }

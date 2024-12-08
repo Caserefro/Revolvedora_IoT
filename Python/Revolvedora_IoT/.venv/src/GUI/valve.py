@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'valve.ui'
+# Form implementation generated from reading ui file 'Valve.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.11
 #
@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Valve(object):
     def setupUi(self, Valve):
         Valve.setObjectName("Valve")
-        Valve.resize(954, 211)
+        Valve.resize(954, 204)
         self.verticalLayout = QtWidgets.QVBoxLayout(Valve)
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout.setSpacing(0)

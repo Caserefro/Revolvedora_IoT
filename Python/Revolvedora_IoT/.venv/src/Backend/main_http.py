@@ -20,7 +20,6 @@ def ReceivePostRequests():
         Package = request.data
         JsonDataReceived = json.loads(Package)
         operation_code = JsonDataReceived["Operation"]
-
         # Here you can handle the operation and create a response accordingly
         PackagetoSend = Response(operation_code, JsonDataReceived)  # You might need to define this function elsewhere
         return PackagetoSend
@@ -89,7 +88,7 @@ def retrieve_data(session):
                     # Collect flow values and time values
                     flow_values = [record.flow_value for record in last_records]
                     time_values = [record.time for record in last_records]
-                    OnlineDevicesData[device_id] = [flow_values, time_values]
+                    # OnlineDevicesData[device_id] = [flow_values, time_values]
 
                 elif device_type.device_type == "Liquid Level Meter":
                     last_records = session.query(LevelRecords).filter(
@@ -99,7 +98,7 @@ def retrieve_data(session):
                     # Collect level state values and time values
                     level_state_values = [record.level_state for record in last_records]
                     time_values = [record.time for record in last_records]
-                    OnlineDevicesData[device_id] = [level_state_values, time_values]
+                    # OnlineDevicesData[device_id] = [level_state_values, time_values]
 
                 elif device_type.device_type == "Electromechanical Valve":
                     last_records = session.query(ValveRecords).filter(
@@ -109,7 +108,7 @@ def retrieve_data(session):
                     # Collect valve values and time values
                     valve_values = [record.valve_value for record in last_records]
                     time_values = [record.time for record in last_records]
-                    OnlineDevicesData[device_id] = [valve_values, time_values]
+                    # OnlineDevicesData[device_id] = [valve_values, time_values]
 
                 elif device_type.device_type == "Mixer Motor":
                     last_records = session.query(MotorRecords).filter(
@@ -131,19 +130,23 @@ def run_flask():
 
 
 if __name__ == '__main__':
-    # Start the Flask app in a separate process
-    flask_process = mp.Process(target=run_flask)
-    flask_process.start()
-
-    threading.Thread(target=start_device_check, daemon=True).start()
-
-    # Main process can handle other tasks (like data processing or plotting)
+    flask_process = None
     try:
+        # Start the Flask app in a separate process
+        flask_process = mp.Process(target=run_flask)
+        flask_process.start()
+
+        # Start a device checking thread
+     #   threading.Thread(target=start_device_check, daemon=True).start()
+
+        # Keep the main process running to handle interrupts
         while True:
             time.sleep(1)
+
     except KeyboardInterrupt:
-        # Graceful shutdown on interrupt
         print("Shutting down...")
     finally:
-        flask_process.terminate()  # Ensure the Flask process is terminated
-        flask_process.join()  # Wait for the Flask process to finish
+        if flask_process:
+            flask_process.terminate()  # Ensure the Flask process is terminated
+            flask_process.join()  # Wait for the Flask process to finish
+            print("Flask process terminated.")

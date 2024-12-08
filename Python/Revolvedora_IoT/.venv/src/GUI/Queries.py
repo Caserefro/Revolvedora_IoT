@@ -13,10 +13,13 @@ OP_DEVICE_SYNC = 11
 OP_SENSOR_DATA = 12
 
 OP_MOTOR_CONTROL = 14
-OP_LEVEL_CONTROL = 15
-OP_OPENING_PERCENTAGE_SETPOINT_CONTROL = 16
+OP_OPENING_ANGLE_SETPOINT_CONTROL = 16
+OP_MIXTUREMODE_SETPOINT = 17
+OP_CONTINOUSMODE_SETPOINT = 18
 
 OP_SENSOR_RECORDS = 20
+OP_MIXTUREMODE_DONE = 21
+
 
 sensorList = [1, 2, 3, 4, 5, 6]
 http_queue = queue.Queue()
@@ -28,7 +31,8 @@ def PostRequestOP_VARIABLE_SETPOINT_CONTROL(IP, Package):  # orders the thing to
         response = requests.post(
             f'http://{IP}/',
             data=json.dumps(Package),
-            headers={'Content-Type': 'application/json'}
+            headers={'Content-Type': 'application/json'},
+            timeout=0.5  # Very short timeout
         )
         print(response.raise_for_status()) # Raise error if the request fails
         print("Response:", response.text)
@@ -57,6 +61,7 @@ def PostRequestOP_Sensor_Records(IP,
     except requests.exceptions.RequestException as e:
         print("Error sending valve control request:", e)
         return None
+
 
 #
 # class HttpQueryWorker(QObject):

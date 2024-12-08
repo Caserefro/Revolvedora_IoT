@@ -1,12 +1,15 @@
+import json
+import sqlite3
+
 import requests
+from Classes import *
 from sqlalchemy import *
 from sqlalchemy import Column, Integer, Float, String, DateTime
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker
-from Classes import *
-import sqlite3
+import requests
+import threading
 import json
-
 # Define operation codes
 OP_SERVER_PING = 10
 OP_DEVICE_SYNC = 11
@@ -21,10 +24,11 @@ OP_SENSOR_RECORDS = 20
 engine = create_engine('sqlite:///test.db')  # SQLite database
 Session = sessionmaker(bind=engine)
 
+
 # Define POST requests
-def PostRequestOP_VALVE_SETPOINT_CONTROL(IP, SetPoint):
+def PostRequestOP_VALVE_SETPOINT_CONTROL(IP, Operation, SetPoint):
     Package = {
-        "Operation": OP_VALVE_SETPOINT_CONTROL,
+        "Operation": Operation,
         "SetPoint": SetPoint
     }
     print("Sending package:", Package)
@@ -32,7 +36,8 @@ def PostRequestOP_VALVE_SETPOINT_CONTROL(IP, SetPoint):
         response = requests.post(
             f'http://{IP}/',
             data=json.dumps(Package),
-            headers={'Content-Type': 'application/json'}
+            headers={'Content-Type': 'application/json'},
+            timeout=.1  # Very short timeout
         )
         response.raise_for_status()  # Raise error if the request fails
         print("Response:", response.text)
@@ -40,6 +45,7 @@ def PostRequestOP_VALVE_SETPOINT_CONTROL(IP, SetPoint):
     except requests.exceptions.RequestException as e:
         print("Error sending valve control request:", e)
         return None
+
 
 def PostRequestOP_MOTOR_CONTROL(IP, State):
     Package = {
@@ -60,6 +66,7 @@ def PostRequestOP_MOTOR_CONTROL(IP, State):
         print("Error sending motor control request:", e)
         return None
 
+
 # Set up session and retrieve a device of type "Valve"
 session = Session()
 testsubject = session.query(Device).filter_by(device_type="Valve").first()
@@ -69,7 +76,6 @@ if testsubject:
     print(PostRequestOP_VALVE_SETPOINT_CONTROL(testsubject.ip_address, 0))
 else:
     print("No device of type 'Valve' found in the database.")
-
 
 # Send a GET request to retrieve data
 # response = requests.get('http://192.168.223.73:5000/Time')
@@ -81,6 +87,3 @@ else:
 #     print(data)
 # else:
 #     print(f"Error: {response.status_code}")
-
-
-

@@ -13,8 +13,10 @@ int servoPin = 5;
 
 void MoveValve(int Degrees) {
   // Allow range from 0 to 90 degrees
-  if (Degrees >= 0 && Degrees <= 90) {
-      myservo.write(Degrees);  // move the servo to the specified position
+  if (Degrees >= 0 && Degrees <= 120) {
+    Serial.println("NEW VALVE POSITION************************************************");
+    SensorData.AngleofValve = Degrees;
+    myservo.write(map(SensorData.AngleofValve, 0, 90, 0, 120));  // move the servo to the specified position
   }
 }
 
