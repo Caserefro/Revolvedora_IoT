@@ -32,7 +32,7 @@ def PostRequestOP_VARIABLE_SETPOINT_CONTROL(IP, Package):  # orders the thing to
             f'http://{IP}/',
             data=json.dumps(Package),
             headers={'Content-Type': 'application/json'},
-            timeout=0.5  # Very short timeout
+            timeout=2  # Very short timeout
         )
         print(response.raise_for_status()) # Raise error if the request fails
         print("Response:", response.text)

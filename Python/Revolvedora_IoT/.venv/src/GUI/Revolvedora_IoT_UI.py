@@ -36,7 +36,7 @@ SetPointValve1 = 0
 SetPointValve2 = 0
 SetPointValve3 = 0
 SetPointTank3 = 0
-ServerIP = "127.0.0.1:5000"
+ServerIP = "192.168.0.104:5000"
 sensor_list = [1, 2, 3, 4, 5, 6]  # Replace with actual sensor IDs
 task_queue = queue.Queue()
 
